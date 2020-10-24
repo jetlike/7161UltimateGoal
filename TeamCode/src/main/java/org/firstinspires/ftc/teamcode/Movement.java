@@ -13,12 +13,11 @@ import java.lang.reflect.Array;
 
 public class Movement {
     private AutoMaster auto = null;
-    DcMotor leftBack;
-    DcMotor rightBack;
-    DcMotor leftFront;
-    DcMotor rightFront;
-    DcMotor lift;
-    DcMotor lift2;
+    DcMotor fl;
+    DcMotor fr;
+    DcMotor bl;
+    DcMotor br;
+
 
     public BNO055IMU imu;
     private Orientation angles;
@@ -27,22 +26,17 @@ public class Movement {
 
     private ElapsedTime runtime = new ElapsedTime();
 
-    public void Init(AutoMaster autoMaster, boolean foundation) {
+    public void Init(AutoMaster autoMaster) {
         auto = autoMaster;
-        leftBack = auto.hardwareMap.dcMotor.get("leftback");
-        leftFront = auto.hardwareMap.dcMotor.get("leftfront");
-        rightBack = auto.hardwareMap.dcMotor.get("rightback");
-        rightFront = auto.hardwareMap.dcMotor.get("rightfront");
-        lift = auto.hardwareMap.dcMotor.get("lift");
-        lift2 = auto.hardwareMap.dcMotor.get("lift2");
+        fl = auto.hardwareMap.dcMotor.get("FL");
+        fr = auto.hardwareMap.dcMotor.get("FR");
+        bl = auto.hardwareMap.dcMotor.get("BL");
+        br = auto.hardwareMap.dcMotor.get("BR");
 
-        lift.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        lift2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        lift.setDirection(DcMotorSimple.Direction.REVERSE);
-        leftBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightBack.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.angleUnit = BNO055IMU.AngleUnit.DEGREES;
@@ -60,11 +54,6 @@ public class Movement {
             auto.sleep(50);
             auto.idle();
         }
-        if (foundation)
-            initLift(1, 1000, 4);
-
-        resetLiftEncoder();
-        auto.telemetry.addData("liftavg:", getEncoderAvg());
         auto.telemetry.update();
         // init motors
     }
@@ -78,29 +67,29 @@ public class Movement {
     public void MoveInch(double speed, double inches, double timeoutS) {
         while (auto.opModeIsActive() && !auto.isStopRequested()) {
             // Ticks is the math for the amount of inches, ticks is paired with getcurrentposition
-            double ticks = inches * (560 / (2.95275590551 * Math.PI));
+            double ticks = inches * (537.6  / (3.93701 * Math.PI));
             double kP = speed / 10;
-            double stopVal = (560 / (2.95275590551 * Math.PI)) / 3;
+            double stopVal = (537.6  / (3.93701 * Math.PI)) / 3;
             //runtime isn't used, this is just a backup call which we don't need
-            leftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            bl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            br.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            fr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            bl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             runtime.reset();
             //if the position is less than the number of inches, than it sets the motors to speed
-            while (Math.abs(leftBack.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
-                double error = (ticks - Math.abs(rightBack.getCurrentPosition())) / (560 / (2.95275590551));
+            while (Math.abs(bl.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
+                double error = (ticks - Math.abs(br.getCurrentPosition())) / (560 / (2.95275590551));
                 double ChangeP = error * kP;
                 if (ChangeP > 1)
                     ChangeP = ChangeP / ChangeP;
-                leftBack.setPower(-ChangeP);
-                leftFront.setPower(-ChangeP);
-                rightFront.setPower(ChangeP);
-                rightBack.setPower(ChangeP);
+                bl.setPower(-ChangeP);
+                fl.setPower(-ChangeP);
+                fr.setPower(ChangeP);
+                br.setPower(ChangeP);
                 auto.telemetry.addData("MotorPow:", ChangeP);
                 //  if (ChangeP < .0) {
 
@@ -172,20 +161,20 @@ public class Movement {
 
     public void startMotors(double left, double right) {
         while (!auto.isStopRequested() && auto.opModeIsActive()) {
-            leftFront.setPower(-left);
-            leftBack.setPower(-left);
-            rightFront.setPower(right);
-            rightBack.setPower(right);
+            fl.setPower(-left);
+            bl.setPower(-left);
+            fr.setPower(right);
+            br.setPower(right);
             break;
         }
     }
 
     public void stopMotors() {
         while (!auto.isStopRequested() && auto.opModeIsActive()) {
-            leftFront.setPower(0);
-            leftBack.setPower(0);
-            rightFront.setPower(0);
-            rightBack.setPower(0);
+            fl.setPower(0);
+            bl.setPower(0);
+            fr.setPower(0);
+            br.setPower(0);
             break;
         }
     }
@@ -195,24 +184,24 @@ public class Movement {
         double ticks = inches * (560 / (2.95276 * Math.PI));
         //runtime isn't used, this is just a backup call which we don't need
 
-        leftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        bl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        br.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        fr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        leftBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        bl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         runtime.reset();
 
-        while (Math.abs(leftBack.getCurrentPosition()) < ticks && auto.opModeIsActive()) {
+        while (Math.abs(bl.getCurrentPosition()) < ticks && auto.opModeIsActive()) {
             if (inches > 0) {
-                leftBack.setPower(speed);
-                rightBack.setPower(speed);
-                leftFront.setPower(-speed);
-                rightFront.setPower(-speed);
-                if (Math.abs(leftBack.getCurrentPosition()) >= ticks) {
+                bl.setPower(speed);
+                br.setPower(speed);
+                fl.setPower(-speed);
+                fr.setPower(-speed);
+                if (Math.abs(bl.getCurrentPosition()) >= ticks) {
                     break;
                 }
             }
@@ -286,90 +275,12 @@ public class Movement {
         }
     }
 
-    public int getLiftEncoder() {
-        return lift2.getCurrentPosition();
-    }
 
-    public void resetLiftEncoder() {
-        lift.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lift.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        lift2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        lift2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-    }
 
-    public int getEncoderAvg() {
-        return (lift.getCurrentPosition() + lift2.getCurrentPosition()) / 2;
-    }
 
-    public void initLift(double speed, double encoderChange, double timeoutS) {
-        runtime.reset();
-        resetLiftEncoder();
-        if (encoderChange < 0) {
-            while (getEncoderAvg() >= encoderChange + 10 && !auto.isStopRequested()) {
-                lift.setPower(-speed);
-                lift2.setPower(-speed);
-                auto.telemetry.addData("lift1:", lift.getCurrentPosition());
-                auto.telemetry.addData("lift2:", lift2.getCurrentPosition());
-                auto.telemetry.addData("encoderVal:", getEncoderAvg());
-                auto.telemetry.update();
-                if (getEncoderAvg() <= encoderChange + 10 || runtime.seconds() > timeoutS) {
-                    break;
-                }
-            }
-            lift2.setPower(0);
-            lift.setPower(0);
-        } else if (encoderChange > 0) {
-            while (getEncoderAvg() <= encoderChange - 10 && !auto.isStopRequested()) {
-                lift.setPower(speed);
-                lift2.setPower(speed);
-                auto.telemetry.addData("lift1:", lift.getCurrentPosition());
-                auto.telemetry.addData("lift2:", lift2.getCurrentPosition());
-                auto.telemetry.addData("encoderVal:", getEncoderAvg());
-                auto.telemetry.update();
-                if (getEncoderAvg() >= encoderChange - 10 || runtime.seconds() > timeoutS) {
-                    break;
-                }
-            }
-            lift.setPower(0);
-            lift2.setPower(0);
-        }
 
-    }
 
-    public void liftEncoder(double speed, double encoderChange, double timeoutS) {
-        runtime.reset();
-        resetLiftEncoder();
-        if (encoderChange < 0) {
-            while (getEncoderAvg() >= encoderChange + 10 && auto.opModeIsActive() && !auto.isStopRequested()) {
-                lift.setPower(-speed);
-                lift2.setPower(-speed);
-                auto.telemetry.addData("lift1:", -lift.getCurrentPosition());
-                auto.telemetry.addData("lift2:", lift2.getCurrentPosition());
-                auto.telemetry.addData("encoderVal:", getEncoderAvg());
-                auto.telemetry.update();
-                if (getEncoderAvg() <= encoderChange + 10 || runtime.seconds() > timeoutS) {
-                    break;
-                }
-            }
-            lift2.setPower(0);
-            lift.setPower(0);
-        } else if (encoderChange > 0) {
-            while (getEncoderAvg() <= encoderChange - 10 && auto.opModeIsActive() && !auto.isStopRequested()) {
-                lift.setPower(speed);
-                lift2.setPower(speed);
-                auto.telemetry.addData("lift1:", -lift.getCurrentPosition());
-                auto.telemetry.addData("lift2:", lift2.getCurrentPosition());
-                auto.telemetry.addData("encoderVal:", getEncoderAvg());
-                auto.telemetry.update();
-                if (getEncoderAvg() >= encoderChange - 10 || runtime.seconds() > timeoutS) {
-                    break;
-                }
-            }
-            lift.setPower(0);
-            lift2.setPower(0);
-        }
 
-    }
 
     public double GimbleCalc(double initVal, double curVal) {
         double angleDiff;
@@ -391,27 +302,27 @@ public class Movement {
             double stopVal = (560 / (2.95275590551 * Math.PI)) / 3;
             double initialHeading = getGyroYaw();
             //runtime isn't used, this is just a backup call which we don't need
-            leftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            bl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            br.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            fr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            bl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             runtime.reset();
             //if the position is less than the number of inches, than it sets the motors to speed
-            while (Math.abs(leftBack.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
-                double error = (ticks - Math.abs(rightBack.getCurrentPosition())) / (560 / (2.95275590551));
+            while (Math.abs(bl.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
+                double error = (ticks - Math.abs(br.getCurrentPosition())) / (560 / (2.95275590551));
                 double ChangeP = error * kP;
                 double AngleDiff = GimbleCalc(initialHeading, getGyroYaw());
                 double GyroScalePower = AngleDiff * .04;
                 if (ChangeP > 1)
                     ChangeP = ChangeP / ChangeP;
-                leftBack.setPower(-ChangeP + GyroScalePower);
-                leftFront.setPower(-ChangeP + GyroScalePower);
-                rightFront.setPower(ChangeP + GyroScalePower);
-                rightBack.setPower(ChangeP + GyroScalePower);
+                bl.setPower(-ChangeP + GyroScalePower);
+                fl.setPower(-ChangeP + GyroScalePower);
+                fr.setPower(ChangeP + GyroScalePower);
+                br.setPower(ChangeP + GyroScalePower);
                 auto.telemetry.addData("MotorPow:", ChangeP);
                 auto.telemetry.addData("initHeading:", initialHeading);
                 auto.telemetry.addData("YawAngle:", getGyroYaw());
@@ -434,27 +345,27 @@ public class Movement {
             double stopVal = (560 / (2.95275590551 * Math.PI)) / 3;
             heading = -heading;
             //runtime isn't used, this is just a backup call which we don't need
-            leftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            bl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            br.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            fr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+            bl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             runtime.reset();
             //if the position is less than the number of inches, than it sets the motors to speed
-            while (Math.abs(leftBack.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
-                double error = (ticks - Math.abs(rightBack.getCurrentPosition())) / (560 / (2.95275590551));
+            while (Math.abs(bl.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
+                double error = (ticks - Math.abs(br.getCurrentPosition())) / (560 / (2.95275590551));
                 double ChangeP = error * kP;
                 double AngleDiff = GimbleCalc(heading, getGyroYaw());
                 double GyroScalePower = AngleDiff * .04;
                 if (ChangeP > 1)
                     ChangeP = ChangeP / ChangeP;
-                leftBack.setPower(-ChangeP + GyroScalePower);
-                leftFront.setPower(-ChangeP + GyroScalePower);
-                rightFront.setPower(ChangeP + GyroScalePower);
-                rightBack.setPower(ChangeP + GyroScalePower);
+                bl.setPower(-ChangeP + GyroScalePower);
+                fl.setPower(-ChangeP + GyroScalePower);
+                fr.setPower(ChangeP + GyroScalePower);
+                br.setPower(ChangeP + GyroScalePower);
                 auto.telemetry.addData("MotorPow:", ChangeP);
                 auto.telemetry.addData("heading:", heading);
                 auto.telemetry.addData("YawAngle:", getGyroYaw());
@@ -475,37 +386,37 @@ public class Movement {
         heading = -heading;
         //runtime isn't used, this is just a backup call which we don't need
 
-        leftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        bl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        br.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        fr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
-        leftBack.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        bl.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         runtime.reset();
 
-        while (Math.abs(leftBack.getCurrentPosition()) < ticks && auto.opModeIsActive()) {
+        while (Math.abs(bl.getCurrentPosition()) < ticks && auto.opModeIsActive()) {
             double angleDiff = GimbleCalc(heading, getGyroYaw());
             double GyroScalePower = angleDiff * .02;
             if (angleDiff > 3) {
-                leftBack.setPower(speed + GyroScalePower);
-                rightBack.setPower(speed + GyroScalePower);
-                leftFront.setPower(-speed);
-                rightFront.setPower(-speed);
+                bl.setPower(speed + GyroScalePower);
+                br.setPower(speed + GyroScalePower);
+                fl.setPower(-speed);
+                fr.setPower(-speed);
             } else if (angleDiff < -3) {
-                leftBack.setPower(speed);
-                rightBack.setPower(speed);
-                leftFront.setPower(-speed + GyroScalePower);
-                rightFront.setPower(-speed + GyroScalePower);
+                bl.setPower(speed);
+                br.setPower(speed);
+                fl.setPower(-speed + GyroScalePower);
+                fr.setPower(-speed + GyroScalePower);
             } else {
-                leftBack.setPower(speed);
-                rightBack.setPower(speed);
-                leftFront.setPower(-speed);
-                rightFront.setPower(-speed);
+                bl.setPower(speed);
+                br.setPower(speed);
+                fl.setPower(-speed);
+                fr.setPower(-speed);
             }
-            if (Math.abs(leftBack.getCurrentPosition()) >= ticks || runtime.seconds() > timeoutS) {
+            if (Math.abs(bl.getCurrentPosition()) >= ticks || runtime.seconds() > timeoutS) {
                 break;
             }
             auto.telemetry.addData("YawAngle:", getGyroYaw());
@@ -562,49 +473,7 @@ public class Movement {
         stopMotors();
     }
 
-    public void foundationForward(double speed, double timeoutInch, double timeoutS, int heading) {
-        while (auto.opModeIsActive() && !auto.isStopRequested()) {
-            // Ticks is the math for the amount of inches, ticks is paired with getcurrentposition
-            double ticks = timeoutInch * (560 / (2.95275590551 * Math.PI));
-            double kP = speed / 10;
-            double stopVal = (560 / (2.95275590551 * Math.PI)) / 3;
-            heading = -heading;
-            //runtime isn't used, this is just a backup call which we don't need
-            leftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            runtime.reset();
-            //if the position is less than the number of inches, than it sets the motors to speed
-            while (Math.abs(leftBack.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
-                double error = (ticks - Math.abs(rightBack.getCurrentPosition())) / (560 / (2.95275590551));
-                double ChangeP = error * kP;
-                double AngleDiff = GimbleCalc(heading, getGyroYaw());
-                double GyroScalePower = AngleDiff * .04;
-                if (ChangeP > 1)
-                    ChangeP = ChangeP / ChangeP;
-                leftBack.setPower(-ChangeP + GyroScalePower);
-                leftFront.setPower(-ChangeP + GyroScalePower);
-                rightFront.setPower(ChangeP + GyroScalePower);
-                rightBack.setPower(ChangeP + GyroScalePower);
-                auto.telemetry.addData("MotorPow:", ChangeP);
-                auto.telemetry.addData("heading:", heading);
-                auto.telemetry.addData("YawAngle:", getGyroYaw());
-                auto.telemetry.update();
-                if ((!auto.mechanisms.touch1.isPressed() && !auto.mechanisms.touch2.isPressed()) || Math.abs(ChangeP) < .15 || runtime.seconds() >= timeoutS) {
-                    break;
-                }
-            }
-            break;
-        }
-        stopMotors();
 
-
-    }
 
     public void MoveInchV2(double speed, double inches, double timeoutS) {
         while (auto.opModeIsActive() && !auto.isStopRequested()) {
@@ -826,46 +695,5 @@ public class Movement {
         stopMotors();
     }
 
-    public void foundationForwardV2(double speed, double timeoutInch, double timeoutS, int heading) {
-        while (auto.opModeIsActive() && !auto.isStopRequested()) {
-            // Ticks is the math for the amount of inches, ticks is paired with getcurrentposition
-            double ticks = timeoutInch * (560 / (3.85826771654 * Math.PI));
-            double kP = speed / 20;
-            double stopVal = (560 / (3.85826771654 * Math.PI)) / 3;
-            heading = -heading;
-            //runtime isn't used, this is just a backup call which we don't need
-            leftBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            leftFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            rightFront.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            runtime.reset();
-            //if the position is less than the number of inches, than it sets the motors to speed
-            while (Math.abs(leftBack.getCurrentPosition()) <= ticks - stopVal && auto.opModeIsActive()) {
-                double error = (ticks - Math.abs(rightBack.getCurrentPosition())) / (560 / (3.85826771654));
-                double ChangeP = error * kP;
-                double AngleDiff = GimbleCalc(heading, getGyroYaw());
-                double GyroScalePower = AngleDiff * .02;
-                if (ChangeP > 1)
-                    ChangeP = ChangeP / ChangeP;
-                leftBack.setPower(-ChangeP + GyroScalePower);
-                leftFront.setPower(-ChangeP + GyroScalePower);
-                rightFront.setPower(ChangeP + GyroScalePower);
-                rightBack.setPower(ChangeP + GyroScalePower);
-                auto.telemetry.addData("MotorPow:", ChangeP);
-                auto.telemetry.addData("heading:", heading);
-                auto.telemetry.addData("YawAngle:", getGyroYaw());
-                auto.telemetry.update();
-                if ((auto.mechanisms.touch1.isPressed() && auto.mechanisms.touch2.isPressed()) || Math.abs(ChangeP) < .15 || runtime.seconds() >= timeoutS) {
-                    break;
-                }
-            }
-            break;
-        }
-        stopMotors();
-    }
-
+ 
 }
