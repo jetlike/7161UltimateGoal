@@ -21,9 +21,15 @@ public class MecanumTeleOp extends OpMode {
     DcMotor shoot1;
     DcMotor shoot2;
     DcMotor intake;
+    Servo lifter;
+    Servo flicker;
+    Servo wobbler;
 
 
     boolean shoot = false;
+    boolean lift = false;
+    boolean flick = false;
+    boolean wobble = true;
 
     public void init() {
         fl = hardwareMap.dcMotor.get("FL");   //hardware map
@@ -33,6 +39,9 @@ public class MecanumTeleOp extends OpMode {
         shoot1 = hardwareMap.dcMotor.get("s1");
         shoot2 = hardwareMap.dcMotor.get("s2");
         intake = hardwareMap.dcMotor.get("intake");
+        lifter = hardwareMap.servo.get("lifter");
+        flicker = hardwareMap.servo.get("flicker");
+        wobbler = hardwareMap.servo.get("wobbler");
 
 
         fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE); //define motor settings
@@ -52,6 +61,10 @@ public class MecanumTeleOp extends OpMode {
         bl.setDirection(DcMotorSimple.Direction.REVERSE);
         fr.setDirection(DcMotorSimple.Direction.REVERSE);
         shoot2.setDirection(DcMotorSimple.Direction.REVERSE);
+        lifter.setPosition(1);
+        flicker.setPosition(.7);
+        wobbler.setPosition(.6);
+
 
     }
 
@@ -120,6 +133,36 @@ public class MecanumTeleOp extends OpMode {
             telemetry.addData("IntakePow:", -1);
         }
 
+        if (gamepad2.a && !lift) {
+            lifter.setPosition(.7);
+            lift = true;
+            telemetry.addData("LiftPosition:", "Lifted/0.7");
+        } else if (gamepad2.a && lift) {
+            lifter.setPosition(1);
+            lift = false;
+            telemetry.addData("LiftPosition:", "Not Lifted/1");
+
+        }
+
+        if (gamepad2.b && !flick) {
+            lifter.setPosition(.5);
+            flick = true;
+            telemetry.addData("FlickPosition:", "Flicked/0.5");
+        } else if (gamepad2.b && flick) {
+            lifter.setPosition(1);
+            flick = false;
+            telemetry.addData("FlickPosition:", "Not Flicked/1");
+        }
+
+        if (gamepad2.right_bumper && !wobble) {
+            wobbler.setPosition(.6);
+            wobble = true;
+            telemetry.addData("WobblerPosition:", "Grabbed/0.6");
+        } else if (gamepad2.right_bumper && wobble) {
+            wobbler.setPosition(0);
+            wobble = false;
+            telemetry.addData("WobblerPosition:", "Not Grabbed/0");
+        }
 
         telemetry.update();
     }
