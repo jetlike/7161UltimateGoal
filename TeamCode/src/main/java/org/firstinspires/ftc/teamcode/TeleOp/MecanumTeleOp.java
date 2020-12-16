@@ -129,15 +129,15 @@ public class MecanumTeleOp extends OpMode {
             shoot2.setPower(0);
         }
 
-        if (gamepad1.right_bumper) {
+        if (gamepad1.right_bumper && gamepad1.left_bumper) {
+            intake.setPower(-1);
+            telemetry.addData("IntakePow:", -1);
+        } else if (gamepad1.right_bumper) {
             intake.setPower(1);
             telemetry.addData("IntakePow:", 1);
         } else if (gamepad1.left_bumper) {
             intake.setPower(0);
             telemetry.addData("IntakePow:", 0);
-        } else if (gamepad1.right_bumper && gamepad1.left_bumper) {
-            intake.setPower(-1);
-            telemetry.addData("IntakePow:", -1);
         }
 
         if (gamepad2.a && !lift && runtimelift.milliseconds() > 600) {
