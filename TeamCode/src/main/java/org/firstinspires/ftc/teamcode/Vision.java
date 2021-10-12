@@ -35,6 +35,8 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.vuforia.PIXEL_FORMAT;
+import com.vuforia.Vuforia;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -189,13 +191,15 @@ public class Vision {
 
     public void Init(AutoMaster autoMaster) {
         auto = autoMaster;
-        initVuforia();
 
-        if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
+    /*    if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
             initTfod();
         } else {
             auto.telemetry.addData("Sorry!", "This device is not compatible with TFOD");
         }
+
+     */
 
 
         /**
@@ -219,17 +223,19 @@ public class Vision {
 
         parameters.vuforiaLicenseKey = VUFORIA_KEY;
 
-        boolean useWebacm = true;
+   //     boolean useWebacm = true;
 
-        if (useWebacm) {
+     //   if (useWebacm) {
             parameters.cameraName = auto.hardwareMap.get(WebcamName.class, "Webcam 1");
-        } else {
-            parameters.vuforiaLicenseKey = VUFORIA_KEY;
-            parameters.cameraDirection = CameraDirection.BACK;
-        }
+      //  } else {
+         //   parameters.vuforiaLicenseKey = VUFORIA_KEY;
+       //     parameters.cameraDirection = CameraDirection.BACK;
+       // }
 
         //  Instantiate the Vuforia engine
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
+        Vuforia.setFrameFormat(PIXEL_FORMAT.RGB565, true); //enables RGB565 format for the image
+        vuforia.setFrameQueueCapacity(4); //tells VuforiaLocalizer to only store one frame at a time
         auto.idle();
         // Loading trackables is not necessary for the TensorFlow Object Detection engine.
     }

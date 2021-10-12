@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -19,18 +20,25 @@ public class MecanumTeleOp extends OpMode {
     DcMotor fr;
     DcMotor bl;
     DcMotor br;
-    DcMotor shoot1;
-    DcMotor shoot2;
+    DcMotor verticalLeft;
+    DcMotor verticalRight;
+    DcMotor horizontal;
+    DcMotorEx shoot1;
+    DcMotorEx shoot2;
     DcMotor intake;
     DcMotor arm;
     Servo lifter;
     Servo flicker;
     Servo wobbler;
- //   CRServo angler;
+    Servo angler;
+
+    double motorVelocity = -2500;
+
 
     private ElapsedTime runtimeflick = new ElapsedTime();
     private ElapsedTime runtimelift = new ElapsedTime();
     private ElapsedTime runtimegrab = new ElapsedTime();
+    private ElapsedTime runtime = new ElapsedTime();
 
 
     boolean shoot = false;
@@ -38,18 +46,38 @@ public class MecanumTeleOp extends OpMode {
     boolean flick = false;
     boolean wobble = true;
 
+    private void  flicktime() {
+        runtime.reset();
+        for (; runtime.milliseconds() < 500;) {
+            flicker.setPosition(.66);
+        }
+        runtime.reset();
+        for (; runtime.milliseconds() < 1000;) {
+            flicker.setPosition(1);
+        }
+    }
+
+    private void shoot() {
+        for (int i = 0; i<3; i++) {
+                flicktime();
+        }
+    }
+
     public void init() {
         fl = hardwareMap.dcMotor.get("FL");   //hardware a map
         fr = hardwareMap.dcMotor.get("FR");
         bl = hardwareMap.dcMotor.get("BL");
         br = hardwareMap.dcMotor.get("BR");
-        shoot1 = hardwareMap.dcMotor.get("s1");
-        shoot2 = hardwareMap.dcMotor.get("s2");
+        verticalLeft = hardwareMap.dcMotor.get("FL");
+        verticalRight = hardwareMap.dcMotor.get("FR");
+        horizontal = hardwareMap.dcMotor.get("BR");
+        shoot1 = hardwareMap.get(DcMotorEx.class,"s1");
+        shoot2 = hardwareMap.get(DcMotorEx.class,"s2");
         intake = hardwareMap.dcMotor.get("intake");
         lifter = hardwareMap.servo.get("lifter");
         flicker = hardwareMap.servo.get("flicker");
         wobbler = hardwareMap.servo.get("wobbler");
-   //     angler = hardwareMap.crservo.get("angler");
+        angler = hardwareMap.servo.get("angler");
         arm = hardwareMap.dcMotor.get("arm");
 
         fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE); //define motor settings
@@ -60,25 +88,36 @@ public class MecanumTeleOp extends OpMode {
         shoot1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shoot2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        fl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        fr.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        bl.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        br.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        verticalLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        verticalRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        horizontal.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        verticalLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        verticalRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        horizontal.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shoot1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        shoot2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shoot1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shoot2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         intake.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bl.setDirection(DcMotorSimple.Direction.REVERSE);
         fr.setDirection(DcMotorSimple.Direction.REVERSE);
-        shoot2.setDirection(DcMotorSimple.Direction.REVERSE);
-        lifter.setPosition(1);
-        flicker.setPosition(.8);
-        wobbler.setPosition(.95);
+        shoot2.setDirection(DcMotorSimple.Direction.FORWARD);
+
+
 
 
     }
 
+
     public void loop() {
+
         if (Math.abs(gamepad1.left_stick_x) > .1 || Math.abs(gamepad1.left_stick_y) > .1 || Math.abs(gamepad1.right_stick_x) > .1) {      //check for inputs
             double FLP = gamepad1.left_stick_y - gamepad1.left_stick_x - gamepad1.right_stick_x;          //calculate power for each motor
             double FRP = gamepad1.left_stick_y + gamepad1.left_stick_x + gamepad1.right_stick_x;
@@ -95,14 +134,14 @@ public class MecanumTeleOp extends OpMode {
             }
 
             if (gamepad1.right_trigger > .1) {    //slow mode for accurate movements
-                fl.setPower(FLP * .35);
-                fr.setPower(FRP * .35);
-                bl.setPower(BLP * .35);
-                br.setPower(BRP * .35);
-                telemetry.addData("FLP:", FLP * .35);
-                telemetry.addData("FRP:", FRP * .35);
-                telemetry.addData("BLP:", BLP * .35);
-                telemetry.addData("BRP:", BRP * .35);
+                fl.setPower(FLP * .5);
+                fr.setPower(FRP * .5);
+                bl.setPower(BLP * .5);
+                br.setPower(BRP * .5);
+                telemetry.addData("FLP:", FLP * .5);
+                telemetry.addData("FRP:", FRP * .5);
+                telemetry.addData("BLP:", BLP * .5);
+                telemetry.addData("BRP:", BRP * .5);
             } else {
                 fl.setPower(FLP);
                 fr.setPower(FRP);
@@ -122,8 +161,10 @@ public class MecanumTeleOp extends OpMode {
 
         if (Math.abs(gamepad2.right_trigger) > .1) {
             shoot1.setPower(-1);
-            shoot2.setPower(1);
+            shoot2.setPower(-1);
             telemetry.addData("ShooterOn:", 1);
+            telemetry.addData("Shoot1Encoder:", shoot1.getCurrentPosition());
+            telemetry.addData("Shoot2Encoder:", shoot2.getCurrentPosition());
         } else {
             shoot1.setPower(0);
             shoot2.setPower(0);
@@ -132,7 +173,7 @@ public class MecanumTeleOp extends OpMode {
         if (gamepad1.right_bumper && gamepad1.left_bumper) {
             intake.setPower(-1);
             telemetry.addData("IntakePow:", -1);
-        } else if (gamepad1.right_bumper) {
+        } else if (gamepad1.right_bumper && !lift) {
             intake.setPower(1);
             telemetry.addData("IntakePow:", 1);
         } else if (gamepad1.left_bumper) {
@@ -141,20 +182,20 @@ public class MecanumTeleOp extends OpMode {
         }
 
         if (gamepad2.a && !lift && runtimelift.milliseconds() > 600) {
-            lifter.setPosition(.6512);
+            lifter.setPosition(.6443);
             lift = true;
             runtimelift.reset();
-            telemetry.addData("LiftPosition:", "Lifted/0.7");
+            telemetry.addData("LiftPosition:", "Lifted/.65");
         } else if (gamepad2.a && lift && runtimelift.milliseconds() > 600) {
-            lifter.setPosition(1);
+            lifter.setPosition(.9);
             lift = false;
             runtimelift.reset();
-            telemetry.addData("LiftPosition:", "Not Lifted/1");
+            telemetry.addData("LiftPosition:", "Not Lifted/.9");
 
         }
 
         if (gamepad2.b && !flick && runtimeflick.milliseconds() > 600) {
-            flicker.setPosition(.5);
+            flicker.setPosition(.66);
             flick = true;
             runtimeflick.reset();
             telemetry.addData("FlickPosition:", "Flicked/0.5");
@@ -178,27 +219,64 @@ public class MecanumTeleOp extends OpMode {
         }
 
         if (Math.abs(gamepad2.left_stick_y) > .1) {
-            arm.setPower(gamepad2.left_stick_y * -.3);
-            telemetry.addData("ArmPow", gamepad2.left_stick_y * -.3);
+            arm.setPower(gamepad2.left_stick_y * -.45);
+            telemetry.addData("ArmPow", gamepad2.left_stick_y * -.45);
+            telemetry.addData("ArmPo:", arm.getCurrentPosition());
         } else {
             arm.setPower(0);
         }
 
-      /*  if (gamepad2.dpad_down) {
-            angler.setPower(.4);
+        if (gamepad2.dpad_down) {
+            angler.setPosition(0);
             telemetry.addData("Angle Change:", "down");
         } else if (gamepad2.dpad_up) {
-            angler.setPower(.6);
+            angler.setPosition(.75);
             telemetry.addData("Angle Change:", "up");
-        } else {
-            angler.setPower(.5);
-            telemetry.addData("Angle Change:", "none");
-        } */
+        } else if (gamepad2.dpad_right) {
+            angler.setPosition(.74);
+            telemetry.addData("Angle Change:", "powershot");
+        }
 
+        if (gamepad2.x) {
+            fl.setPower(0);
+            fr.setPower(0);
+            bl.setPower(0);
+            br.setPower(0);
+            shoot();
+        }
+
+     //   telemetry.addData("verticalLeft:", verticalLeft.getCurrentPosition());
+      //  telemetry.addData("verticalRight:", verticalRight.getCurrentPosition());
+        telemetry.addData("horizontal:", horizontal.getCurrentPosition());
+        telemetry.addData("verticalRight:", verticalRight.getCurrentPosition());
+        telemetry.addData("verticalLeft:", verticalLeft.getCurrentPosition());
+        telemetry.addData("FL:", fl.getCurrentPosition());
+        telemetry.addData("FR:", fr.getCurrentPosition());
+        telemetry.addData("BL:", bl.getCurrentPosition());
+        telemetry.addData("BR:", br.getCurrentPosition());
         telemetry.update();
     }
 
     public void stop() {
 
     }
+/*
+    private static class macro extends Thread {
+        public macro() {
+
+        }
+        @Override
+        public void run() {
+            try {
+                while (!isInterrupted()) {
+                        shoot();
+                        break;
+                    }
+                }
+            } catch (InterruptedException e) {
+                telemetry.addData("macro:", "error");
+            }
+        }
+    }
+    */
 }

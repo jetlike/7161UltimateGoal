@@ -1,15 +1,33 @@
-//
-// build.gradle in TeamCode
-//
-// Most of the definitions for building your module reside in a common, shared
-// file 'build.common.gradle'. Being factored in this way makes it easier to
-// integrate updates to the FTC into your code. If you really need to customize
-// the build definitions, you can place those customizations in this file, but
-// please think carefully as to whether such customizations are really necessary
-// before doing so.
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+buildscript {
+    ext.kotlin_version = '1.4.10'
 
-// Custom definitions may go here
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:4.0.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
 
-// Include common definitions from above.
-apply from: '../build.common.gradle'
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        maven {
+            url 'https://dl.bintray.com/openftc/maven'
+        }
+        maven { url = "https://dl.bintray.com/first-tech-challenge/ftcsdk/" }
+
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
